@@ -192,6 +192,9 @@ public class Assinador extends javax.swing.JApplet {
             certModel.addRow(linha);
         }
         jTable1.setModel(certModel);
+        jTable1.getColumnModel().getColumn(0).setPreferredWidth(380);
+        jTable1.getColumnModel().getColumn(1).setPreferredWidth(100);
+        jTable1.getColumnModel().getColumn(2).setPreferredWidth(50);
     }
 
     private void initializeBrowser() {
