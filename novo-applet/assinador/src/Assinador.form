@@ -212,9 +212,12 @@
                     <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
                       <Image iconType="3" name="/search.png"/>
                     </Property>
-                    <Property name="text" type="java.lang.String" value="Procurar driver do dispositivo"/>
+                    <Property name="text" type="java.lang.String" value="Procurar driver"/>
                     <Property name="toolTipText" type="java.lang.String" value="Localizar driver Linux/Mac"/>
                   </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btProcurarDriverActionPerformed"/>
+                  </Events>
                 </Component>
                 <Component class="javax.swing.JButton" name="jButton1">
                   <Properties>

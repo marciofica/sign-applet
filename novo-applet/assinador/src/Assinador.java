@@ -392,8 +392,13 @@ public class Assinador extends javax.swing.JApplet {
 
         btProcurarDriver.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
         btProcurarDriver.setIcon(new javax.swing.ImageIcon(getClass().getResource("/search.png"))); // NOI18N
-        btProcurarDriver.setText("Procurar driver do dispositivo");
+        btProcurarDriver.setText("Procurar driver");
         btProcurarDriver.setToolTipText("Localizar driver Linux/Mac");
+        btProcurarDriver.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btProcurarDriverActionPerformed(evt);
+            }
+        });
 
         jButton1.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
         jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/arrow-refresh.png"))); // NOI18N
@@ -566,6 +571,11 @@ public class Assinador extends javax.swing.JApplet {
             btProcurarDriver.setEnabled(true);
         }
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void btProcurarDriverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btProcurarDriverActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btProcurarDriverActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btProcurarDriver;
     private javax.swing.JButton btVoltar;
