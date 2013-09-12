@@ -5,10 +5,13 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.security.AuthProvider;
 import java.security.KeyStore;
@@ -28,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Properties;
 import javax.security.auth.login.LoginException;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -50,10 +54,12 @@ import sun.security.pkcs11.SunPKCS11;
 public class Assinador extends javax.swing.JApplet {
 
     private static final int TAB_CERTIFICADO = 0;
-    private static final int TAB_STATUS = 1;
+    private static final int TAB_A1 = 1;
+    private static final int TAB_STATUS = 2;
     private static final String DRIVERS_WIN = "windows.drivers";
     private static final String DRIVERS_MAC = "mac.drivers";
     private static final String DRIVERS_LNX = "linux.drivers";
+    private static final String MSG_TIPO_ARQ_NOT_FOUND = "Não foi possível identificar o tipo do arquivo a ser assinado.";
 
     /**
      * Initializes the applet Assinador
@@ -308,6 +314,56 @@ public class Assinador extends javax.swing.JApplet {
         });
     }
 
+    private void selectA1Cert() {
+        arquivoA1Chooser = new JFileChooser();
+        int returnValue = arquivoA1Chooser.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            arquivoA1 = arquivoA1Chooser.getSelectedFile();
+            txtArquivoCertificado.setText(arquivoA1.getPath());
+        }
+    }
+
+    private Properties getA1Properties() throws IOException {
+        InputStream is = Assinador.class.getResourceAsStream("a1.properties");
+        Properties props = new Properties();
+        props.load(is);
+        is.close();
+        return props;
+    }
+
+    private void storeProperties() {
+        FileOutputStream oStream = null;
+        try {
+            Properties props = getA1Properties();
+            if (memorizar.isSelected()) {
+                if (arquivoA1 != null) {
+                    props.setProperty("caminho", arquivoA1.getPath());
+                }
+                if (jPasswordField1 != null && !new String(jPasswordField1.getPassword()).isEmpty()) {
+                    props.setProperty("senha", new String(jPasswordField1.getPassword()));
+                }
+                props.setProperty("armazenar", String.valueOf(memorizar.isSelected()));
+            } else {
+                props.setProperty("caminho", "");
+                props.setProperty("senha", "");
+                props.setProperty("armazenar", "false");
+            }
+            oStream = new FileOutputStream(((URL) ClassLoader.getSystemResource("a1.properties")).getPath());
+            props.store(oStream, "Atualizado");
+
+        } catch (IOException ex) {
+            
+        } finally {
+            try {
+                if (oStream != null) {
+                    oStream.flush();
+                    oStream.close();
+                }                
+            } catch (IOException ex) {
+            }
+        }
+    }
+
     private void assinar() {
         // Pega o tipo de documento que quer assinar
         String type = getParameter("typeSign");
@@ -319,9 +375,7 @@ public class Assinador extends javax.swing.JApplet {
         if ("PDF".equalsIgnoreCase(type)) {
             executeJspButton("processReport");
         }
-        
-        
-        
+
         // Fecha a popup
         if ("PDF".equalsIgnoreCase(type)) {
             executeJspButton("closePopupApplet");
@@ -329,6 +383,30 @@ public class Assinador extends javax.swing.JApplet {
             executeJspButton("closePopup");
         }
 
+    }
+
+    private void setJSObject(String fieldName, String value) {
+        initializeBrowser();
+        JSObject object = (JSObject) mainForm.getMember(fieldName);
+        if (object == null) {
+            return;
+        }
+        object.setMember("value", value);
+    }
+
+    private void signA1(File cert, String senha, PrintWriter writter, String type) throws Exception {
+        writter.append("\r\n[" + getDate() + "] Selecionado certificado A1");
+        ProcessSign sign = new ProcessSign();
+        if ("XML".equalsIgnoreCase(type)) {
+            setJSObject("mainForm:xmlSignature", sign.assinaRps(getXml(), cert.getPath(), senha,
+                    tagAssinar, "A1", null, null, writter));
+            executeJspButton();
+        } else if ("PDF".equalsIgnoreCase(type)) {
+            sign.sendPdf(getUrlReport(), getParameters(), cert.getPath(), senha, "A1", null, null,
+                    writter, getParameter("msgSucesso"));
+        } else {
+            throw new Exception(Assinador.MSG_TIPO_ARQ_NOT_FOUND);
+        }
     }
 
     /**
@@ -350,6 +428,14 @@ public class Assinador extends javax.swing.JApplet {
         jButton2 = new javax.swing.JButton();
         btProcurarDriver = new javax.swing.JButton();
         jButton1 = new javax.swing.JButton();
+        jPanel1 = new javax.swing.JPanel();
+        jLabel4 = new javax.swing.JLabel();
+        jButton3 = new javax.swing.JButton();
+        jLabel5 = new javax.swing.JLabel();
+        jPasswordField1 = new javax.swing.JPasswordField();
+        assinarA1 = new javax.swing.JButton();
+        txtArquivoCertificado = new javax.swing.JLabel();
+        memorizar = new javax.swing.JCheckBox();
         tabStatus = new javax.swing.JPanel();
         btVoltar = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
@@ -440,6 +526,94 @@ public class Assinador extends javax.swing.JApplet {
 
         tabs.addTab("Certificados", new javax.swing.ImageIcon(getClass().getResource("/certificates.png")), tabCertificados); // NOI18N
 
+        jPanel1.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
+        jPanel1.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentShown(java.awt.event.ComponentEvent evt) {
+                jPanel1ComponentShown(evt);
+            }
+        });
+
+        jLabel4.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
+        jLabel4.setText("Clique no botão abaixo e localize o arquivo do certificado digital:");
+
+        jButton3.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
+        jButton3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/search.png"))); // NOI18N
+        jButton3.setText("Localizar certificado");
+        jButton3.setToolTipText("Localizar certificado digital");
+        jButton3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton3ActionPerformed(evt);
+            }
+        });
+
+        jLabel5.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
+        jLabel5.setText("Informe a senha do certificado digital:");
+
+        jPasswordField1.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
+        jPasswordField1.setToolTipText("Informe a senha do certificado digital");
+
+        assinarA1.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
+        assinarA1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/sign.png"))); // NOI18N
+        assinarA1.setText("Assinar");
+        assinarA1.setToolTipText("Efetuar assinatura");
+        assinarA1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                assinarA1ActionPerformed(evt);
+            }
+        });
+
+        txtArquivoCertificado.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
+
+        memorizar.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
+        memorizar.setText("Memorizar as configurações do certificado.");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                        .addComponent(memorizar)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(assinarA1, javax.swing.GroupLayout.PREFERRED_SIZE, 107, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, 610, Short.MAX_VALUE)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addComponent(jButton3)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(txtArquivoCertificado, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(jLabel5)
+                            .addComponent(jPasswordField1))
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(22, 22, 22)
+                .addComponent(jLabel4)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(txtArquivoCertificado, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addComponent(jLabel5)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPasswordField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 78, Short.MAX_VALUE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(assinarA1)
+                    .addComponent(memorizar))
+                .addContainerGap())
+        );
+
+        txtArquivoCertificado.getAccessibleContext().setAccessibleName("txtArquivoSelecionado");
+
+        tabs.addTab("Certificado A1", new javax.swing.ImageIcon(getClass().getResource("/certificates.png")), jPanel1); // NOI18N
+
         tabStatus.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
 
         btVoltar.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
@@ -528,11 +702,11 @@ public class Assinador extends javax.swing.JApplet {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -576,24 +750,90 @@ public class Assinador extends javax.swing.JApplet {
         // TODO add your handling code here:
     }//GEN-LAST:event_btProcurarDriverActionPerformed
 
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        selectA1Cert();
+    }//GEN-LAST:event_jButton3ActionPerformed
+
+    private void assinarA1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_assinarA1ActionPerformed
+        // Atualiza as informações do preperties
+        storeProperties();
+        // Faz a assinatura digital
+        String type = getParameter("typeSign");
+        // Instancia a classe para escrever no JTextArea
+        PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
+        writter.append("[" + getDate() + "] Iniciando o processo de assinatura digital");
+        if ("PDF".equalsIgnoreCase(type)) {
+            executeJspButton("processReport");
+        }
+        try {
+            signA1(arquivoA1, new String(jPasswordField1.getPassword()), writter, type);
+        } catch (Exception ex) {
+            if (ex instanceof InterruptedException) {
+                ex.printStackTrace(writter);
+            } else {
+                JOptionPane.showMessageDialog(null, "#1# " + ex.getMessage(),
+                        "Aconteceu um erro", JOptionPane.ERROR_MESSAGE);
+                writter.append("\r\n[ERRO] Falhou o processo de assinatura");
+                writter.append("\r\n---------------------------------------\r\n");
+                writter.append(ex.getMessage());
+                writter.append("\r\n Stacktrace: \r\n");
+                ex.printStackTrace(writter);
+            }
+        }
+        // Fecha a popup
+        if ("PDF".equalsIgnoreCase(type)) {
+            executeJspButton("closePopupApplet");
+        } else {
+            executeJspButton("closePopup");
+        }
+    }//GEN-LAST:event_assinarA1ActionPerformed
+
+    private void jPanel1ComponentShown(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jPanel1ComponentShown
+        try {
+            // Carrega o properties das configurações do A1.
+            Properties props = getA1Properties();
+            boolean armazenar = Boolean.valueOf(props.getProperty("armazenar"));
+            memorizar.setSelected(armazenar);
+            String caminho = props.getProperty("caminho");
+            if (caminho != null && !caminho.isEmpty()) {
+                txtArquivoCertificado.setText(caminho);
+                arquivoA1 = new File(caminho);
+            }
+            String senha = props.getProperty("senha");
+            if (senha != null && !senha.isEmpty()) {
+                jPasswordField1.setText(senha);
+            }
+        } catch (IOException ex) {
+            // Não foi possível carregar o arquivo de propriedades
+        }
+
+    }//GEN-LAST:event_jPanel1ComponentShown
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton assinarA1;
     private javax.swing.JButton btProcurarDriver;
     private javax.swing.JButton btVoltar;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
+    private javax.swing.JButton jButton3;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JPasswordField jPasswordField1;
     private javax.swing.JProgressBar jProgressBar1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JTable jTable1;
     private javax.swing.JTextArea jTextArea1;
+    private javax.swing.JCheckBox memorizar;
     private javax.swing.JPanel tabCertificados;
     private javax.swing.JPanel tabStatus;
     private javax.swing.JTabbedPane tabs;
+    private javax.swing.JLabel txtArquivoCertificado;
     // End of variables declaration//GEN-END:variables
     private DefaultTableModel certModel;
     private JSObject browserWindow;
@@ -605,4 +845,6 @@ public class Assinador extends javax.swing.JApplet {
     private Certificate[] certificate;
     private KeyInfo keyInfo;
     private PrivateKey privateKey;
+    private JFileChooser arquivoA1Chooser;
+    private File arquivoA1;
 }
