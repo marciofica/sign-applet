@@ -1,17 +1,17 @@
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.security.AuthProvider;
 import java.security.KeyStore;
@@ -36,14 +36,15 @@ import java.util.Map;
 import java.util.Properties;
 import javax.security.auth.login.LoginException;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.table.DefaultTableModel;
 import javax.xml.crypto.dsig.keyinfo.KeyInfo;
 import netscape.javascript.JSException;
 import netscape.javascript.JSObject;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 import sun.security.pkcs11.SunPKCS11;
 
 /*
@@ -64,7 +65,6 @@ public class Assinador extends javax.swing.JApplet {
     private static final String DRIVERS_LNX = "linux.drivers";
     private static final String MSG_TIPO_ARQ_NOT_FOUND = "Não foi possível identificar o tipo do arquivo a ser assinado.";
     private static final String CERTIFICADOS_DATA = "certificadosData";
-    private static final String CERTIFICADOS_KEYSTORE = "certificadosKeystore";
 
     /**
      * Initializes the applet Assinador
@@ -119,40 +119,42 @@ public class Assinador extends javax.swing.JApplet {
     }
 
     // Implementações Márcio 27/08/2013
-    private KeyStore ksEntry() throws KeyStoreException, NoSuchProviderException, IOException, NoSuchAlgorithmException, CertificateException {
-        KeyStore ks = null;
-        if (getOs().contains("Windows")) {
-            ks = KeyStore.getInstance("Windows-MY", "SunMSCAPI");
-            ks.load(null, null);
-        } else {
-            ks = KeyStore.getInstance("PKCS11");
-            String senha = JOptionPane.showInputDialog("Digite a senha do certificado:");
-            if (!"".equals(senha)) {
-                ks.load(null, senha.toCharArray());
-            }
-        }
-        return ks;
-    }
-
     private void getProviderCert(File driverCert) throws LoginException, FileNotFoundException, IOException {
-        Provider p = null;
-        AuthProvider ap = null;
-        p = new SunPKCS11(new ByteArrayInputStream(new String("name = SafeWeb" + "\n" + "library =  " + driverCert.getAbsolutePath() + "\n" + "showInfo = true").getBytes()));
-        ap = (AuthProvider) p;
+        provider = new SunPKCS11(new ByteArrayInputStream(new String("name = SafeWeb" + "\n" + "library =  " + driverCert.getAbsolutePath() + "\n" + "showInfo = true").getBytes()));
+        AuthProvider ap = (AuthProvider) provider;
         ap.logout();
-        Security.addProvider(p);
+        Security.addProvider(provider);
     }
 
     private String getOs() {
         return System.getProperties().getProperty("os.name");
     }
 
+    private String getHomeUser() {
+        return System.getProperties().getProperty("user.home");
+    }
+    
+    private KeyStore ksEntry() throws KeyStoreException, NoSuchProviderException, IOException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, LoginException {
+        if (getOs().contains("Windows")) {
+            ks = KeyStore.getInstance("Windows-MY");
+            ks.load(null, null);
+        } else {
+            findDriverCerticate();
+            ks = KeyStore.getInstance("PKCS11", provider);
+            //Criar a mensagem sera exibida
+            JLabel label = new JLabel("Digite a senha do certificado:");
+            //criar o componente grafico que recebera o que for digitado
+            JPasswordField jpf = new JPasswordField();
+            //Exibir a janela para o usuario
+            JOptionPane.showConfirmDialog(null, new Object[]{label, jpf}, "Senha do certificado:", JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE);
+            ks.load(null, new String(jpf.getPassword()).toCharArray());
+        }
+        return ks;
+    }
+    
     private void populateTreeCertificados() throws KeyStoreException, LoginException, CertificateParsingException, NoSuchProviderException, IOException, NoSuchAlgorithmException, CertificateException, Exception {
-        findDriverCerticate();
-        KeyStore ks = null;
         try {
             ks = ksEntry();
-            getData().put(CERTIFICADOS_KEYSTORE, ks);
         } catch (KeyStoreException ex) {
             btProcurarDriver.setEnabled(true);
             tabs.setSelectedIndex(TAB_STATUS);
@@ -321,8 +323,8 @@ public class Assinador extends javax.swing.JApplet {
 
     private void initialize() throws LoginException, KeyStoreException, Exception {
         populateTreeCertificados();
-        xml = "<?xml version='1.0' encoding='UTF-8'?><InfNfe></InfNfe>";//getParameter("xml");
-        tagAssinar = "InfNfe"; //getParameter("tagAssinar");
+        xml = getParameter("xml");
+        tagAssinar = getParameter("tagAssinar");
         btProcurarDriver.addActionListener(
                 new ActionListener() {
             @Override
@@ -346,8 +348,25 @@ public class Assinador extends javax.swing.JApplet {
         }
     }
 
+    private String defautA1Config() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("caminho=");
+        sb.append(System.getProperties().getProperty("line.separator"));
+        sb.append("senha=");
+        sb.append(System.getProperties().getProperty("line.separator"));
+        sb.append("armazenar=false");
+        return sb.toString();
+    }
+
     private Properties getA1Properties() throws IOException {
-        InputStream is = Assinador.class.getResourceAsStream("a1.properties");
+        File file = new File(getHomeUser() + System.getProperties().getProperty("file.separator") + "a1.properties");
+        if (!file.exists()) {
+            file.createNewFile();
+            BufferedWriter out = new BufferedWriter(new FileWriter(file));
+            out.write(defautA1Config());
+            out.close();
+        }
+        InputStream is = new FileInputStream(file);
         Properties props = new Properties();
         props.load(is);
         is.close();
@@ -371,7 +390,7 @@ public class Assinador extends javax.swing.JApplet {
                 props.setProperty("senha", "");
                 props.setProperty("armazenar", "false");
             }
-            oStream = new FileOutputStream(((URL) ClassLoader.getSystemResource("a1.properties")).getPath());
+            oStream = new FileOutputStream(getHomeUser() + System.getProperties().getProperty("file.separator") + "a1.properties");
             props.store(oStream, "Atualizado");
 
         } catch (IOException ex) {
@@ -388,7 +407,7 @@ public class Assinador extends javax.swing.JApplet {
 
     private void assinarA3Action() {
         // Pega o tipo de documento que quer assinar
-        String type = "xml";//getParameter("typeSign");
+        String type = getParameter("typeSign");
 
         // Instancia a classe para escrever no JTextArea
         PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
@@ -401,7 +420,7 @@ public class Assinador extends javax.swing.JApplet {
             if ("PDF".equalsIgnoreCase(type)) {
                 executeJspButton("processReport");
             }
-            signA3(cert.getEmitidoPara(), "", writter, type, (KeyStore) getData().get(CERTIFICADOS_KEYSTORE), cert.getCertificado());
+            signA3(cert.getEmitidoPara(), "", writter, type, ks, null);
 
         } catch (Exception e1) {
             if (e1 instanceof InterruptedException) {
@@ -417,7 +436,7 @@ public class Assinador extends javax.swing.JApplet {
         if ("PDF".equalsIgnoreCase(type)) {
             executeJspButton("closePopupApplet");
         } else {
-           // executeJspButton("closePopup");
+            executeJspButton("closePopup");
         }
 
     }
@@ -447,8 +466,7 @@ public class Assinador extends javax.swing.JApplet {
         writter.append("\r\n[" + getDate() + "] Selecionado certificado A1");
         ProcessSign sign = new ProcessSign();
         if ("XML".equalsIgnoreCase(type)) {
-            setJSObject("mainForm:xmlSignature", sign.assinaRps(getXml(), cert.getPath(), senha,
-                    tagAssinar, "A1", null, null, writter, null, null));
+            setJSObject("mainForm:xmlSignature", sign.assinaRps(getXml(), cert.getPath(), senha, tagAssinar, "A1", null, null, writter, null, null));
             executeJspButton();
         } else if ("PDF".equalsIgnoreCase(type)) {
             sign.sendPdf(getUrlReport(), getParameters(), cert.getPath(), senha, "A1", null, null,
@@ -464,11 +482,9 @@ public class Assinador extends javax.swing.JApplet {
         ProcessSign sign = new ProcessSign();
 
         if ("XML".equalsIgnoreCase(type)) {
-            xml = "<?xml version='1.0' encoding='UTF-8'?><InfNfe></InfNfe>"; //getJSObject("mainForm:xml");
-           // setJSObject("mainForm:xmlSignature",
-            String ass =   sign.assinaRps(xml, alias, senha, tagAssinar, "A3W", null, null, writter, ks, x509);//);
-            JOptionPane.showMessageDialog(null, ass);
-            //executeJspButton();
+            xml = getJSObject("mainForm:xml");
+            setJSObject("mainForm:xmlSignature", sign.assinaRps(xml, alias, senha, tagAssinar, "A3W", null, null, writter, ks, x509));
+            executeJspButton();
         } else if ("PDF".equalsIgnoreCase(type)) {
             sign.sendPdf(getUrlReport(), getParameters(), alias, senha, "A3W", null, null, writter, getParameter("msgSucesso"), ks, x509);
         } else {
@@ -789,6 +805,9 @@ public class Assinador extends javax.swing.JApplet {
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
         try {
+            if(provider != null){
+                Security.removeProvider(provider.getName());
+            }            
             populateTreeCertificados();
         } catch (KeyStoreException ex) {
             tabs.setSelectedIndex(TAB_STATUS);
@@ -856,7 +875,7 @@ public class Assinador extends javax.swing.JApplet {
         if ("PDF".equalsIgnoreCase(type)) {
             executeJspButton("closePopupApplet");
         } else {
-            executeJspButton("closePopup");
+            // executeJspButton("closePopup");
         }
     }//GEN-LAST:event_assinarA1ActionPerformed
 
@@ -924,4 +943,6 @@ public class Assinador extends javax.swing.JApplet {
     private JFileChooser arquivoA1Chooser;
     private File arquivoA1;
     private Map<String, Object> data;
+    private KeyStore ks;
+    private Provider provider;
 }

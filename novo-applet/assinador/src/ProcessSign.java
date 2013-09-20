@@ -63,7 +63,7 @@ public class ProcessSign {
                     tagAssinar, i, writter);
         }
         writter.append("\r\n[" + getDate() + "] Assinatura feita com sucesso!");
-        JOptionPane.showMessageDialog(null, "[" + getDate() + "] Assinatura feita com sucesso!",
+        JOptionPane.showMessageDialog(null, "[" + getDate() + "] Assinatura feita com sucesso!\r\n",
                 "Assinatura efetuada com sucesso.", JOptionPane.INFORMATION_MESSAGE);
         return outputXml(document);
     }
@@ -80,7 +80,7 @@ public class ProcessSign {
         OutputStream output = getPdfStream(connectionPost);
         writter.append("\r\n[" + getDate() + "] Iniciando o processos de assinatura do documento");
         //Assina PDF
-        assinaPdf(pdfReader, output, certificado, senha, tipoCertificado, library, tokenName,writter, ks, x509);
+        assinaPdf(pdfReader, output, certificado, senha, tipoCertificado, library, tokenName, writter, ks, x509);
         //Envia o PDF para o servidor
         writter.append("\r\n[" + getDate() + "] Enviando para o servidor o documento assinado");
         BufferedReader rd = new BufferedReader(new InputStreamReader(
@@ -181,45 +181,36 @@ public class ProcessSign {
     }
 
     private void loadCertificate(String aliasOrFile, String senha, X509Certificate x509Certificate, XMLSignatureFactory signatureFactory, String tipoCertificado, KeyStore keyStore) throws FileNotFoundException, KeyStoreException, Exception {
-        KeyStore ks = null;
         KeyStore.PrivateKeyEntry pkEntry = null;
-        
+        KeyStore ks = null;
         // Quando o tipo de certificado for A1
         if ("A1".equalsIgnoreCase(tipoCertificado)) {
             InputStream entrada = new FileInputStream(aliasOrFile);
             ks = KeyStore.getInstance("pkcs12");
-
             try {
                 ks.load(entrada, senha.toCharArray());
             } catch (Exception e) {
                 throw new Exception(
                         "Senha do certificado digital incorreta ou o certificado é inválido.");
             }
-
-            Enumeration<String> aliasesEnum = ks.aliases();
-            while (aliasesEnum.hasMoreElements()) {
-                String alias = aliasesEnum.nextElement();
-                if (ks.isKeyEntry(alias)) {
-                    pkEntry = (PrivateKeyEntry) ks.getEntry(alias, new KeyStore.PasswordProtection(
-                            senha.toCharArray()));
-                    privateKey = pkEntry.getPrivateKey();
-                    certificate = ks.getCertificateChain(alias);
-                    aliasCert = alias;
-                    break;
-                }
-            }
         } else {
             ks = keyStore;
-            senha = "Betha123@";
-             pkEntry = (PrivateKeyEntry) ks.getEntry(aliasOrFile, new KeyStore.PasswordProtection(
-                    senha.toCharArray()));
-            privateKey = pkEntry.getPrivateKey();
-            certificate = ks.getCertificateChain(aliasOrFile);
-            aliasCert = aliasOrFile;     
-            
         }
-        
-         X509Certificate cert = x509Certificate;
+
+        Enumeration<String> aliasesEnum = ks.aliases();
+        while (aliasesEnum.hasMoreElements()) {
+            String alias = aliasesEnum.nextElement();
+            if (ks.isKeyEntry(alias)) {
+                pkEntry = (PrivateKeyEntry) ks.getEntry(alias, new KeyStore.PasswordProtection(
+                        senha.toCharArray()));
+                privateKey = pkEntry.getPrivateKey();
+                certificate = ks.getCertificateChain(alias);
+                aliasCert = alias;
+                break;
+            }
+        }
+
+        X509Certificate cert = (X509Certificate) pkEntry.getCertificate();
 
         if (signatureFactory != null) {
             KeyInfoFactory keyInfoFactory = signatureFactory.getKeyInfoFactory();
@@ -228,10 +219,10 @@ public class ProcessSign {
             X509Data x509Data = keyInfoFactory.newX509Data(x509Content);
             keyInfo = keyInfoFactory.newKeyInfo(Collections.singletonList(x509Data));
         }
-        
+
     }
 
-   private String outputXml(Document doc) throws TransformerException,
+    private String outputXml(Document doc) throws TransformerException,
             UnsupportedEncodingException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         TransformerFactory tf = TransformerFactory.newInstance();

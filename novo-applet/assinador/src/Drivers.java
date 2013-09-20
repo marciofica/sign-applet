@@ -34,13 +34,13 @@ public class Drivers {
     
      public Collection<String> linuxDrivers(){
         Collection<String> drivers = new ArrayList<String>();
+        drivers.add("/usr/lib/libeTPkcs11.so");
         drivers.add("/usr/lib/libaetpkss.so");
         drivers.add("/usr/lib/libgpkcs11.so");
         drivers.add("/usr/lib/libgpkcs11.so.2");
         drivers.add("/usr/lib/libepsng_p11.so");
         drivers.add("/usr/lib/libepsng_p11.so.1");
         drivers.add("/usr/local/ngsrv/libepsng_p11.so.1");
-        drivers.add("/usr/lib/libeTPkcs11.so");
         drivers.add("/usr/lib/libeToken.so");
         drivers.add("/usr/lib/libeToken.so.4");
         drivers.add("/usr/lib/libcmP11.so");
