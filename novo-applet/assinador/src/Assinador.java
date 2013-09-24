@@ -34,6 +34,8 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.security.auth.login.LoginException;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -133,25 +135,27 @@ public class Assinador extends javax.swing.JApplet {
     private String getHomeUser() {
         return System.getProperties().getProperty("user.home");
     }
-    
+
     private KeyStore ksEntry() throws KeyStoreException, NoSuchProviderException, IOException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, LoginException {
         if (getOs().contains("Windows")) {
             ks = KeyStore.getInstance("Windows-MY");
             ks.load(null, null);
         } else {
-            findDriverCerticate();
+            if(provider == null){
+                findDriverCerticate();
+            }            
             ks = KeyStore.getInstance("PKCS11", provider);
             //Criar a mensagem sera exibida
             JLabel label = new JLabel("Digite a senha do certificado:");
             //criar o componente grafico que recebera o que for digitado
             JPasswordField jpf = new JPasswordField();
             //Exibir a janela para o usuario
-            JOptionPane.showConfirmDialog(null, new Object[]{label, jpf}, "Senha do certificado:", JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE);
+            JOptionPane.showConfirmDialog(null, new Object[]{label, jpf}, "Senha do certificado:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
             ks.load(null, new String(jpf.getPassword()).toCharArray());
         }
         return ks;
     }
-    
+
     private void populateTreeCertificados() throws KeyStoreException, LoginException, CertificateParsingException, NoSuchProviderException, IOException, NoSuchAlgorithmException, CertificateException, Exception {
         try {
             ks = ksEntry();
@@ -325,18 +329,7 @@ public class Assinador extends javax.swing.JApplet {
         populateTreeCertificados();
         xml = getParameter("xml");
         tagAssinar = getParameter("tagAssinar");
-        btProcurarDriver.addActionListener(
-                new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                driver = new JFileChooser();
-                int returnValue = driver.showOpenDialog(null);
-                if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    File selectedFile = driver.getSelectedFile();
-                    jTextArea1.append("Arquivo selecionado: " + selectedFile.getPath() + "\r\n");
-                }
-            }
-        });
+
     }
 
     private void selectA1Cert() {
@@ -805,9 +798,9 @@ public class Assinador extends javax.swing.JApplet {
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
         try {
-            if(provider != null){
+            if (provider != null) {
                 Security.removeProvider(provider.getName());
-            }            
+            }
             populateTreeCertificados();
         } catch (KeyStoreException ex) {
             tabs.setSelectedIndex(TAB_STATUS);
@@ -839,6 +832,28 @@ public class Assinador extends javax.swing.JApplet {
 
     private void btProcurarDriverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btProcurarDriverActionPerformed
         // TODO add your handling code here:
+        driver = new JFileChooser();
+        int returnValue = driver.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = driver.getSelectedFile();
+            jTextArea1.append("Arquivo selecionado: " + selectedFile.getPath() + "\r\n");
+            try {
+                getProviderCert(driver.getSelectedFile());
+                
+            } catch (LoginException ex) {
+                tabs.setSelectedIndex(TAB_STATUS);
+                jTextArea1.append(ex.getMessage());
+                btProcurarDriver.setEnabled(true);
+            } catch (FileNotFoundException ex) {
+                tabs.setSelectedIndex(TAB_STATUS);
+                jTextArea1.append(ex.getMessage());
+                btProcurarDriver.setEnabled(true);
+            } catch (IOException ex) {
+                tabs.setSelectedIndex(TAB_STATUS);
+                jTextArea1.append(ex.getMessage());
+                btProcurarDriver.setEnabled(true);
+            }
+        }
     }//GEN-LAST:event_btProcurarDriverActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
