@@ -62,7 +62,7 @@ public class ProcessSign {
             assinarRpsSign(signatureFactory, transformList, privateKey, keyInfo, document,
                     tagAssinar, i, writter);
         }
-        writter.append("\r\n[" + getDate() + "] Assinatura feita com sucesso!");
+        writter.append("\r\n[" + getDate() + "] Assinatura feita com sucesso!\r\n");
         JOptionPane.showMessageDialog(null, "[" + getDate() + "] Assinatura feita com sucesso!\r\n",
                 "Assinatura efetuada com sucesso.", JOptionPane.INFORMATION_MESSAGE);
         return outputXml(document);
@@ -94,7 +94,7 @@ public class ProcessSign {
         input.close();
         rd.close();
         input.close();
-        writter.append("\r\n[" + getDate() + "] " + msgSucesso);
+        writter.append("\r\n[" + getDate() + "] " + msgSucesso + "\r\n");
         JOptionPane.showMessageDialog(null, "[" + getDate() + "] " + msgSucesso,
                 "Assinatura efetuada com sucesso.", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -128,7 +128,7 @@ public class ProcessSign {
         NodeList elements = document.getElementsByTagName(tagAssinar);
         Element el = (Element) elements.item(index);
         String id = el.getAttribute("Id");
-
+        el.setIdAttribute("Id", true);
         Reference ref = fac.newReference("#" + id, fac.newDigestMethod(DigestMethod.SHA1, null),
                 transformList, null, null);
         SignedInfo si = fac
@@ -209,7 +209,9 @@ public class ProcessSign {
                 break;
             }
         }
-
+        if(pkEntry == null){
+            throw new Exception("Não foi possível obter a chave privada para fazer a assinatura.");
+        }
         X509Certificate cert = (X509Certificate) pkEntry.getCertificate();
 
         if (signatureFactory != null) {
