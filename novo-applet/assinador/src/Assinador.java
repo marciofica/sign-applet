@@ -153,12 +153,7 @@ public class Assinador extends javax.swing.JApplet {
             ks = KeyStore.getInstance("PKCS11", provider);
             JLabel label = new JLabel("Digite a senha do certificado:");
             JPasswordField jpf = new JPasswordField();
-<<<<<<< HEAD
             JOptionPane.showConfirmDialog(null, new Object[]{label, jpf}, "Senha do certificado:", JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE);
-=======
-            //Exibir a janela para o usuario
-            JOptionPane.showConfirmDialog(null, new Object[]{label, jpf}, "Senha do certificado:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
->>>>>>> b83f7a482bb29343e4b2d4db0084892a09a94b2a
             ks.load(null, new String(jpf.getPassword()).toCharArray());
         }
         return ks;
