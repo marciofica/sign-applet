@@ -161,7 +161,7 @@
                               <Component id="btProcurarDriver" alignment="3" min="-2" max="-2" attributes="0"/>
                               <Component id="jButton1" alignment="3" min="-2" max="-2" attributes="0"/>
                           </Group>
-                          <EmptySpace max="32767" attributes="0"/>
+                          <EmptySpace pref="18" max="32767" attributes="0"/>
                       </Group>
                   </Group>
                 </DimensionLayout>
@@ -301,7 +301,7 @@
                           <Component id="jLabel5" min="-2" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="jPasswordField1" min="-2" max="-2" attributes="0"/>
-                          <EmptySpace pref="78" max="32767" attributes="0"/>
+                          <EmptySpace pref="82" max="32767" attributes="0"/>
                           <Group type="103" groupAlignment="3" attributes="0">
                               <Component id="assinarA1" alignment="3" min="-2" max="-2" attributes="0"/>
                               <Component id="memorizar" alignment="3" min="-2" max="-2" attributes="0"/>
