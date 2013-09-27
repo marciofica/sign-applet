@@ -1,6 +1,4 @@
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -34,8 +32,6 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.security.auth.login.LoginException;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -126,7 +122,6 @@ public class Assinador extends javax.swing.JApplet {
         this.data = data;
     }
 
-    // Implementações Márcio 27/08/2013
     private void getProviderCert(File driverCert) throws LoginException, FileNotFoundException, IOException {
         provider = new SunPKCS11(new ByteArrayInputStream(new String("name = SafeWeb" + "\n" + "library =  " + driverCert.getAbsolutePath() + "\n" + "showInfo = true").getBytes()));
         AuthProvider ap = (AuthProvider) provider;
@@ -152,7 +147,7 @@ public class Assinador extends javax.swing.JApplet {
             }            
             ks = KeyStore.getInstance("PKCS11", provider);
             JLabel label = new JLabel("Digite a senha do certificado:");
-            JPasswordField jpf = new JPasswordField();
+            jpf = new JPasswordField();
             JOptionPane.showConfirmDialog(null, new Object[]{label, jpf}, "Senha do certificado:", JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE);
             ks.load(null, new String(jpf.getPassword()).toCharArray());
         }
@@ -288,13 +283,6 @@ public class Assinador extends javax.swing.JApplet {
         return getJSObject("mainForm:returnUrl");
     }
 
-    private String getXml() {
-        if (xml == null) {
-            xml = getJSObject("mainForm:xml");
-        }
-        return xml;
-    }
-
     private void findDriverCerticate() throws FileNotFoundException, IOException, LoginException {
         if (getOs().contains("Windows")) {
             readArqDrivers(DRIVERS_WIN);
@@ -323,6 +311,7 @@ public class Assinador extends javax.swing.JApplet {
             if (driverRead.exists()) {
                 try {
                     getProviderCert(driverRead);
+                    selectedFile = driverRead;
                 } catch (ProviderException ex) {
                     continue;
                 }
@@ -419,7 +408,11 @@ public class Assinador extends javax.swing.JApplet {
             if ("PDF".equalsIgnoreCase(type)) {
                 executeJspButton("processReport");
             }
-            signA3(cert.getEmitidoPara(), "", writter, type, ks, null);
+            String senha = "";
+            if(jpf != null){
+                senha = new String(jpf.getPassword());
+            }
+            signA3(cert.getEmitidoPara(), senha, writter, type, ks, null);
 
         } catch (Exception e1) {
             if (e1 instanceof InterruptedException) {
@@ -436,7 +429,7 @@ public class Assinador extends javax.swing.JApplet {
         if ("PDF".equalsIgnoreCase(type)) {
             executeJspButton("closePopupApplet");
         } else {
-            executeJspButton("closePopup");
+           executeJspButton("closePopup");
         }
 
     }
@@ -483,15 +476,24 @@ public class Assinador extends javax.swing.JApplet {
         ProcessSign sign = new ProcessSign();
         if ("XML".equalsIgnoreCase(type)) {
             xml = getJSObject("mainForm:xml");
-            setJSObject("mainForm:xmlSignature", sign.assinaRps(xml, alias, senha, tagAssinar, "A3W", null, null, writter, ks, x509));
+            setJSObject("mainForm:xmlSignature", sign.assinaRps(xml, alias, senha, tagAssinar, getOsAlias(), selectedFile, null, writter, ks, x509));
             executeJspButton();
         } else if ("PDF".equalsIgnoreCase(type)) {
-            sign.sendPdf(getUrlReport(), getParameters(), alias, senha, "A3W", null, null, writter, getParameter("msgSucesso"), ks, x509);
+            sign.sendPdf(getUrlReport(), getParameters(), alias, senha, getOsAlias(), null, null, writter, getParameter("msgSucesso"), ks, x509);
         } else {
             throw new Exception(Assinador.MSG_TIPO_ARQ_NOT_FOUND);
         }
     }
-
+    
+    private String getOsAlias(){
+        if(getOs().contains("Windows")){
+            return "A3W";
+        } else {
+            return "A3L";
+        }
+    }
+    
+    
     /**
      * This method is called from within the init() method to initialize the
      * form. WARNING: Do NOT modify this code. The content of this method is
@@ -842,7 +844,7 @@ public class Assinador extends javax.swing.JApplet {
         driver = new JFileChooser();
         int returnValue = driver.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = driver.getSelectedFile();
+            selectedFile = driver.getSelectedFile();
             jTextArea1.append("Arquivo selecionado: " + selectedFile.getPath() + "\r\n");
             try {
                 getProviderCert(driver.getSelectedFile());
@@ -968,4 +970,6 @@ public class Assinador extends javax.swing.JApplet {
     private Map<String, Object> data;
     private KeyStore ks;
     private Provider provider;
+    private JPasswordField jpf;
+    private File selectedFile;
 }

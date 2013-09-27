@@ -37,6 +37,7 @@ import org.xml.sax.SAXException;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfSignatureAppearance;
 import com.lowagie.text.pdf.PdfStamper;
+import sun.security.pkcs11.SunPKCS11;
 
 public class ProcessSign {
 
@@ -47,7 +48,7 @@ public class ProcessSign {
     private PrivateKey privateKey;
 
     public String assinaRps(String xml, String certificado, String senha, String tagAssinar,
-            String tipoCertificado, String library, String tokenName, PrintWriter writter, KeyStore keyStore, X509Certificate x509Certificate)
+            String tipoCertificado, File library, String tokenName, PrintWriter writter, KeyStore keyStore, X509Certificate x509Certificate)
             throws Exception {
 
         Document document = documentFactory(xml);
@@ -55,7 +56,7 @@ public class ProcessSign {
         ArrayList<Transform> transformList = signatureFactory(signatureFactory);
 
         writter.append("\r\n[" + getDate() + "] Verificando informações do certificado");
-        loadCertificate(certificado, senha, x509Certificate, signatureFactory, tipoCertificado, keyStore);
+        loadCertificate(certificado, senha, x509Certificate, signatureFactory, tipoCertificado, keyStore, library);
 
         for (int i = 0; i < document.getDocumentElement().getElementsByTagName(tagAssinar)
                 .getLength(); i++) {
@@ -69,7 +70,7 @@ public class ProcessSign {
     }
 
     public void sendPdf(String urlTmp, Object[] params, String certificado, String senha,
-            String tipoCertificado, String library, String tokenName, PrintWriter writter,
+            String tipoCertificado, File library, String tokenName, PrintWriter writter,
             String msgSucesso, KeyStore ks, X509Certificate x509) throws Exception {
         writter.append("\r\n[" + getDate() + "] Realizando o download do documento");
         URL url = new URL(getUrlWithParameters(urlTmp, params));
@@ -100,13 +101,13 @@ public class ProcessSign {
     }
 
     private void assinaPdf(PdfReader pdfReader, OutputStream output, String certificado,
-            String senha, String tipoCertificado, String library, String tokenName,
+            String senha, String tipoCertificado, File library, String tokenName,
             PrintWriter writter, KeyStore ks, X509Certificate x509Certificate) throws Exception {
         PdfStamper stamper = PdfStamper.createSignature(pdfReader, output, '\0');
         PdfSignatureAppearance signAppearance = stamper.getSignatureAppearance();
 
         // Carrega o certificado
-        loadCertificate(certificado, senha, x509Certificate, null, tipoCertificado, ks);
+        loadCertificate(certificado, senha, x509Certificate, null, tipoCertificado, ks, library);
 
         // Faz a assinatura e seta as propriedades do PDF
         signAppearance.setCrypto(privateKey, certificate, null,
@@ -180,7 +181,7 @@ public class ProcessSign {
         return urlservLet;
     }
 
-    private void loadCertificate(String aliasOrFile, String senha, X509Certificate x509Certificate, XMLSignatureFactory signatureFactory, String tipoCertificado, KeyStore keyStore) throws FileNotFoundException, KeyStoreException, Exception {
+    private void loadCertificate(String aliasOrFile, String senha, X509Certificate x509Certificate, XMLSignatureFactory signatureFactory, String tipoCertificado, KeyStore keyStore, File driver) throws FileNotFoundException, KeyStoreException, Exception {
         KeyStore.PrivateKeyEntry pkEntry = null;
         KeyStore ks = null;
         // Quando o tipo de certificado for A1
@@ -193,6 +194,21 @@ public class ProcessSign {
                 throw new Exception(
                         "Senha do certificado digital incorreta ou o certificado é inválido.");
             }
+        } else if("A3L".equalsIgnoreCase(tipoCertificado)) {
+            if (ks == null) {
+                // Quando o tipo de certificado for Token em *NIX
+                Provider p = new SunPKCS11(new ByteArrayInputStream(new String("name = SafeWeb" + "\n" + "library =  " + driver.getAbsolutePath() + "\n" + "showInfo = true").getBytes()));
+                AuthProvider ap = (AuthProvider) p;
+                ap.logout();
+                Security.addProvider(p);
+                ks = KeyStore.getInstance("PKCS11");
+                try {
+                        ks.load(null, senha.toCharArray());
+                } catch (Exception e) {
+                        throw new Exception(
+                                "Senha do certificado digital incorreta ou o certificado é inválido.");
+                }
+            }            
         } else {
             ks = keyStore;
         }
