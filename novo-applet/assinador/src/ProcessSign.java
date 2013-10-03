@@ -71,11 +71,8 @@ public class ProcessSign {
     public void sendPdf(String urlTmp, Object[] params, String certificado, String senha,
             String tipoCertificado, File library, String tokenName, PrintWriter writter,
             String msgSucesso, KeyStore ks, X509Certificate x509) throws Exception {
-        JOptionPane.showMessageDialog(null, "Entrou aqui...");
         writter.append("\r\n[" + getDate() + "] Realizando o download do documento");
-        JOptionPane.showMessageDialog(null, "Entrou aqui 2...");
         URL url = new URL(getUrlWithParameters(urlTmp, params));
-        JOptionPane.showMessageDialog(null, "Entrou aqui 3...");
         InputStream input = getPdfToSignture(url);
         PdfReader pdfReader = new PdfReader(input);
         //Monta a conexao com o Servlet para escrever o arquivo assinado digitalmente
@@ -180,7 +177,6 @@ public class ProcessSign {
         String parameter = "?p1=" + params[0] + "&p2=" + params[1] + "&p3=" + params[2] + "&p4="
                 + params[3];
         String urlservLet = urlTmp + params[4] + parameter;
-        JOptionPane.showMessageDialog(null, urlservLet);
         return urlservLet;
     }
 
