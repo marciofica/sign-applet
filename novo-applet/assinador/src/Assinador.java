@@ -276,6 +276,7 @@ public class Assinador extends javax.swing.JApplet {
         params[1] = getJSObject("mainForm:p2");
         params[2] = getJSObject("mainForm:p3");
         params[3] = getJSObject("mainForm:p4");
+        params[4] = getParameter("urlServlet");
         return params;
     }
 
@@ -479,6 +480,7 @@ public class Assinador extends javax.swing.JApplet {
             setJSObject("mainForm:xmlSignature", sign.assinaRps(xml, alias, senha, tagAssinar, getOsAlias(), selectedFile, null, writter, ks, x509));
             executeJspButton();
         } else if ("PDF".equalsIgnoreCase(type)) {
+            JOptionPane.showMessageDialog(null, "PDF");
             sign.sendPdf(getUrlReport(), getParameters(), alias, senha, getOsAlias(), null, null, writter, getParameter("msgSucesso"), ks, x509);
         } else {
             throw new Exception(Assinador.MSG_TIPO_ARQ_NOT_FOUND);
