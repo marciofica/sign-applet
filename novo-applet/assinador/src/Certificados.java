@@ -10,19 +10,21 @@ public class Certificados {
 	private String emitidoPor;
 	private String entidade;
 	private String validoAte;
+        private String alias;
 
 	public Certificados() {
 
 	}
 
 	public Certificados(X509Certificate certificado, String emitidoPara, String emitidoPor,
-	        String entidade, String validoAte, boolean checked) {
+	        String entidade, String validoAte, boolean checked, String alias) {
 		this.certificado = certificado;
 		this.emitidoPara = emitidoPara;
 		this.emitidoPor = emitidoPor;
 		this.entidade = entidade;
 		this.validoAte = validoAte;
 		this.checked = checked;
+                this.alias = alias;
 	}
 
 	public X509Certificate getCertificado() {
@@ -48,6 +50,10 @@ public class Certificados {
 	public boolean isChecked() {
 		return checked;
 	}
+        
+        public String getAlias(){
+            return alias;
+        }
 
 	public void setCertificado(X509Certificate certificado) {
 		this.certificado = certificado;
@@ -72,10 +78,14 @@ public class Certificados {
 	public void setValidoAte(String validoAte) {
 		this.validoAte = validoAte;
 	}
+        
+        public void setAlias(String alias){
+            this.alias = alias;
+        }
 
 	@Override
 	public String toString() {
 		return "Emitido para: " + emitidoPara + " Emitido por: " + emitidoPor + " Entidade: "
-		        + entidade + " Válido até: " + validoAte;
+		        + entidade + " Válido até: " + validoAte + "Alias: " + alias;
 	}
 }

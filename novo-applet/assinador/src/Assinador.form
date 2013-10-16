@@ -359,9 +359,6 @@
                     <Property name="text" type="java.lang.String" value="Assinar"/>
                     <Property name="toolTipText" type="java.lang.String" value="Efetuar assinatura"/>
                   </Properties>
-                  <Events>
-                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="assinarA1ActionPerformed"/>
-                  </Events>
                 </Component>
                 <Component class="javax.swing.JLabel" name="txtArquivoCertificado">
                   <Properties>

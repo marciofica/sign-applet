@@ -45,11 +45,12 @@ public class ProcessSign {
     private Certificate[] certificate;
     private KeyInfo keyInfo;
     private PrivateKey privateKey;
+    private KeyStore ks;
 
     public String assinaRps(String xml, String certificado, String senha, String tagAssinar,
             String tipoCertificado, File library, String tokenName, PrintWriter writter, KeyStore keyStore, X509Certificate x509Certificate)
             throws Exception {
-
+        
         Document document = documentFactory(xml);
         XMLSignatureFactory signatureFactory = XMLSignatureFactory.getInstance("DOM");
         ArrayList<Transform> transformList = signatureFactory(signatureFactory);
@@ -71,14 +72,14 @@ public class ProcessSign {
     public void sendPdf(String urlTmp, Object[] params, String certificado, String senha,
             String tipoCertificado, File library, String tokenName, PrintWriter writter,
             String msgSucesso, KeyStore ks, X509Certificate x509) throws Exception {
-        writter.append("\r\n[" + getDate() + "] Realizando o download do documento");
+        writter.append("\r\n[" + getDate() + "] Realizando o download do documento.. Por favor aguarde.");
         URL url = new URL(getUrlWithParameters(urlTmp, params));
         InputStream input = getPdfToSignture(url);
         PdfReader pdfReader = new PdfReader(input);
         //Monta a conexao com o Servlet para escrever o arquivo assinado digitalmente
         HttpURLConnection connectionPost = (HttpURLConnection) url.openConnection();
         OutputStream output = getPdfStream(connectionPost);
-        writter.append("\r\n[" + getDate() + "] Iniciando o processos de assinatura do documento");
+        writter.append("\r\n[" + getDate() + "] Iniciando o processo de assinatura do documento");
         //Assina PDF
         assinaPdf(pdfReader, output, certificado, senha, tipoCertificado, library, tokenName, writter, ks, x509);
         //Envia o PDF para o servidor
@@ -104,10 +105,8 @@ public class ProcessSign {
             PrintWriter writter, KeyStore ks, X509Certificate x509Certificate) throws Exception {
         PdfStamper stamper = PdfStamper.createSignature(pdfReader, output, '\0');
         PdfSignatureAppearance signAppearance = stamper.getSignatureAppearance();
-
         // Carrega o certificado
         loadCertificate(certificado, senha, x509Certificate, null, tipoCertificado, ks, library);
-
         // Faz a assinatura e seta as propriedades do PDF
         signAppearance.setCrypto(privateKey, certificate, null,
                 PdfSignatureAppearance.WINCER_SIGNED);
@@ -182,7 +181,6 @@ public class ProcessSign {
 
     private void loadCertificate(String aliasOrFile, String senha, X509Certificate x509Certificate, XMLSignatureFactory signatureFactory, String tipoCertificado, KeyStore keyStore, File driver) throws FileNotFoundException, KeyStoreException, Exception {
         KeyStore.PrivateKeyEntry pkEntry = null;
-        KeyStore ks = null;
         // Quando o tipo de certificado for A1
         if ("A1".equalsIgnoreCase(tipoCertificado)) {
             InputStream entrada = new FileInputStream(aliasOrFile);
@@ -211,16 +209,18 @@ public class ProcessSign {
         } else {
             ks = keyStore;
         }
-
+        
         Enumeration<String> aliasesEnum = ks.aliases();
         while (aliasesEnum.hasMoreElements()) {
-            String alias = aliasesEnum.nextElement();
-            if (ks.isKeyEntry(alias)) {
-                pkEntry = (PrivateKeyEntry) ks.getEntry(alias, new KeyStore.PasswordProtection(
+            if("A1".equalsIgnoreCase(tipoCertificado)){
+                aliasOrFile = aliasesEnum.nextElement();
+            }
+            if (ks.isKeyEntry(aliasOrFile)) {
+                pkEntry = (PrivateKeyEntry) ks.getEntry(aliasOrFile, new KeyStore.PasswordProtection(
                         senha.toCharArray()));
                 privateKey = pkEntry.getPrivateKey();
-                certificate = ks.getCertificateChain(alias);
-                aliasCert = alias;
+                certificate = ks.getCertificateChain(aliasOrFile);
+                aliasCert = aliasOrFile;
                 break;
             }
         }

@@ -39,7 +39,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
-import javax.swing.JProgressBar;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.table.DefaultTableModel;
@@ -162,7 +161,7 @@ public class Assinador extends javax.swing.JApplet {
             ks = ksEntry();
         } catch (KeyStoreException ex) {
             tabs.setSelectedIndex(TAB_STATUS);
-            ex.printStackTrace();;
+            ex.printStackTrace();
             throw new Exception("Não foi possível localizar o certificado. \r\nSelecione o driver correspondente ao SmartCard/Token e tente novamente.");
         } catch (NoSuchProviderException ex) {
             tabs.setSelectedIndex(TAB_STATUS);
@@ -171,27 +170,28 @@ public class Assinador extends javax.swing.JApplet {
         }
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         IcpBrasilUtils icpBrasil = new IcpBrasilUtils();
-        X509Certificate certificate;
+        X509Certificate certificatez;
         Collection<Certificados> certList = null;
         for (Enumeration<String> enumKs = ks.aliases(); enumKs.hasMoreElements();) {
             String alias = enumKs.nextElement().toString();
-            certificate = (X509Certificate) ks.getCertificate(alias);
-            if (!icpBrasil.isFinalCertificate(certificate)) {
-                String name = icpBrasil.getNome(certificate.getSubjectX500Principal());
-                String entidadeCertificadora = icpBrasil.getEntidadeCertificadora(certificate
+            certificatez = (X509Certificate) ks.getCertificate(alias);
+            if (!icpBrasil.isFinalCertificate(certificatez)) {
+                String name = icpBrasil.getNome(certificatez.getSubjectX500Principal());
+                String entidadeCertificadora = icpBrasil.getEntidadeCertificadora(certificatez
                         .getSubjectX500Principal());
                 if (entidadeCertificadora.contains("ICP-Brasil")) {
                     if (certList == null) {
                         certList = new ArrayList<Certificados>();
                     }
                     Certificados cert = new Certificados();
-                    cert.setCertificado(certificate);
+                    cert.setCertificado(certificatez);
                     cert.setChecked(false);
                     cert.setEmitidoPara(name);
-                    cert.setEmitidoPor(icpBrasil.getNome(certificate.getIssuerX500Principal()));
-                    cert.setEntidade(icpBrasil.getEntidadeCertificadora(certificate
+                    cert.setEmitidoPor(icpBrasil.getNome(certificatez.getIssuerX500Principal()));
+                    cert.setEntidade(icpBrasil.getEntidadeCertificadora(certificatez
                             .getIssuerX500Principal()));
-                    cert.setValidoAte(sdf.format(certificate.getNotAfter()));
+                    cert.setValidoAte(sdf.format(certificatez.getNotAfter()));
+                    cert.setAlias(ks.getCertificateAlias(certificatez));
                     certList.add(cert);
                 }
             }
@@ -341,7 +341,18 @@ public class Assinador extends javax.swing.JApplet {
                 }).start();
             }
         });
-
+        
+        assinarA1.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+               new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        assinarA1Action();
+                    }
+                }).start();
+            }
+        });
     }
 
     private void selectA1Cert() {
@@ -418,51 +429,6 @@ public class Assinador extends javax.swing.JApplet {
         jProgressBar1.setStringPainted(true);
     }
 
-    private void assinarA3Action() {
-        tabs.setSelectedIndex(TAB_STATUS);
-        jProgressBar1.setIndeterminate(true);
-        // Pega o tipo de documento que quer assinar
-        String type = getParameter("typeSign");
-
-        // Instancia a classe para escrever no JTextArea
-        PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
-        writter.append("[" + getDate() + "] Iniciando o processo de assinatura digital");
-
-        // Caso selecione certificados A3 Windows
-        int row = jTable1.getSelectedRow();
-        Certificados cert = searchCertificate(jTable1.getModel().getValueAt(row, 0).toString());
-        try {
-            if ("PDF".equalsIgnoreCase(type)) {
-                tabs.setSelectedIndex(TAB_STATUS);
-                executeJspButton("processReport");
-            }
-            String senha = "";
-            if (jpf != null) {
-                senha = new String(jpf.getPassword());
-            }
-            signA3(cert.getEmitidoPara(), senha, writter, type, ks, null);            
-        } catch (Exception e1) {
-            configProgressBar();
-            if (e1 instanceof InterruptedException) {
-                e1.printStackTrace();
-            } else {
-                JOptionPane.showMessageDialog(null, "#7# " + e1.getMessage(),
-                        "Aconteceu um erro", JOptionPane.ERROR_MESSAGE);
-                writter.append("\r\n[ERRO] Falhou o processo de assinatura - Feche o navegador e abra novamente.");
-                writter.append("\r\n---------------------------------------\r\n");
-                writter.append(e1.getMessage());
-                e1.printStackTrace();;
-            }
-        }
-        configProgressBar();
-        if ("PDF".equalsIgnoreCase(type)) {
-            executeJspButton("closePopupApplet");
-        } else {
-            executeJspButton("closePopup");
-        }
-
-    }
-
     private Certificados searchCertificate(String alias) {
         Certificados cert = null;
         Collection<Certificados> certList = (Collection<Certificados>) getData().get(CERTIFICADOS_DATA);
@@ -499,7 +465,7 @@ public class Assinador extends javax.swing.JApplet {
         }
     }
 
-    private void signA3(String alias, String senha, PrintWriter writter, String type, KeyStore ks, X509Certificate x509)
+    private void signA3(String alias, String senha, PrintWriter writter, String type, X509Certificate x509)
             throws Exception {
         writter.append("\r\n[" + getDate() + "] Selecionado certificado A3");
         ProcessSign sign = new ProcessSign();
@@ -508,7 +474,7 @@ public class Assinador extends javax.swing.JApplet {
             setJSObject("mainForm:xmlSignature", sign.assinaRps(xml, alias, senha, tagAssinar, getOsAlias(), selectedFile, null, writter, ks, x509));
             executeJspButton();
         } else if ("PDF".equalsIgnoreCase(type)) {
-            sign.sendPdf(getUrlReport(), getParameters(), alias, senha, getOsAlias(), null, null, writter, getParameter("msgSucesso"), ks, x509);
+            sign.sendPdf(getUrlReport(), getParameters(), alias, senha, getOsAlias(), selectedFile, null, writter, getParameter("msgSucesso"), ks, x509);
         } else {
             throw new Exception(Assinador.MSG_TIPO_ARQ_NOT_FOUND);
         }
@@ -520,6 +486,94 @@ public class Assinador extends javax.swing.JApplet {
         } else {
             return "A3L";
         }
+    }
+    
+    private void assinarA3Action() {
+        tabs.setSelectedIndex(TAB_STATUS);
+        jProgressBar1.setIndeterminate(true);
+        // Pega o tipo de documento que quer assinar
+        String type = getParameter("typeSign");
+
+        // Instancia a classe para escrever no JTextArea
+        PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
+        writter.append("[" + getDate() + "] Iniciando o processo de assinatura digital");
+
+        // Caso selecione certificados A3 Windows
+        int row = jTable1.getSelectedRow();
+        Certificados cert = searchCertificate(jTable1.getModel().getValueAt(row, 0).toString());
+        try {
+            if ("PDF".equalsIgnoreCase(type)) {
+                tabs.setSelectedIndex(TAB_STATUS);
+                executeJspButton("processReport");
+            }
+            String senha = "";
+            if (jpf != null) {
+                senha = new String(jpf.getPassword());
+            }
+            signA3(cert.getAlias(), senha, writter, type, null);            
+        } catch (Exception e1) {
+            configProgressBar();
+            if (e1 instanceof InterruptedException) {
+                e1.printStackTrace();
+            } else {
+                String msg = "";
+                if(e1.getCause() != null){
+                    msg = e1.getCause().getMessage();
+                } else {
+                    msg = e1.getMessage();
+                }
+                
+                JOptionPane.showMessageDialog(null, "#7# " + msg, "Aconteceu um erro", JOptionPane.ERROR_MESSAGE);
+                writter.append("\r\n[ERRO] Falhou o processo de assinatura - Feche o navegador e abra novamente.");
+                writter.append("\r\n---------------------------------------\r\n");
+                writter.append(msg);
+            }
+        }
+        configProgressBar();
+        if("PDF".equalsIgnoreCase(type)){
+            executeJspButton("closePopupApplet");
+        } else {
+            executeJspButton("closePopup");
+        }
+    }
+    
+    private void assinarA1Action(){
+        tabs.setSelectedIndex(TAB_STATUS);
+        jProgressBar1.setIndeterminate(true);
+        // Atualiza as informações do preperties
+        storeProperties();
+        // Faz a assinatura digital
+        String type = getParameter("typeSign");
+        // Instancia a classe para escrever no JTextArea
+        PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
+        writter.append("[" + getDate() + "] Iniciando o processo de assinatura digital");
+        if ("PDF".equalsIgnoreCase(type)) {
+            executeJspButton("processReport");
+        }
+        try {
+            signA1(arquivoA1, new String(jPasswordField1.getPassword()), writter, type);
+        } catch (Exception ex) {
+            tabs.setSelectedIndex(TAB_STATUS);
+            configProgressBar();
+            if (ex instanceof InterruptedException) {
+                ex.printStackTrace(writter);
+            } else {
+                JOptionPane.showMessageDialog(null, "#1# " + ex.getMessage(),
+                        "Aconteceu um erro", JOptionPane.ERROR_MESSAGE);
+                writter.append("\r\n[ERRO] Falhou o processo de assinatura");
+                writter.append("\r\n---------------------------------------\r\n");
+                writter.append(ex.getMessage());
+                writter.append("\r\n Stacktrace: \r\n");
+                ex.printStackTrace(writter);
+            }
+        }
+        configProgressBar();
+        // Fecha a popup
+        if("PDF".equalsIgnoreCase(type)){
+            executeJspButton("closePopupApplet");
+        } else {
+            executeJspButton("closePopup");
+        }       
     }
 
     /**
@@ -669,11 +723,6 @@ public class Assinador extends javax.swing.JApplet {
         assinarA1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/sign.png"))); // NOI18N
         assinarA1.setText("Assinar");
         assinarA1.setToolTipText("Efetuar assinatura");
-        assinarA1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                assinarA1ActionPerformed(evt);
-            }
-        });
 
         txtArquivoCertificado.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
 
@@ -892,41 +941,6 @@ public class Assinador extends javax.swing.JApplet {
         selectA1Cert();
     }//GEN-LAST:event_jButton3ActionPerformed
 
-    private void assinarA1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_assinarA1ActionPerformed
-        // Atualiza as informações do preperties
-        storeProperties();
-        // Faz a assinatura digital
-        String type = getParameter("typeSign");
-        // Instancia a classe para escrever no JTextArea
-        PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
-        writter.append("[" + getDate() + "] Iniciando o processo de assinatura digital");
-        if ("PDF".equalsIgnoreCase(type)) {
-            executeJspButton("processReport");
-        }
-        try {
-            signA1(arquivoA1, new String(jPasswordField1.getPassword()), writter, type);
-        } catch (Exception ex) {
-            tabs.setSelectedIndex(TAB_STATUS);
-            if (ex instanceof InterruptedException) {
-                ex.printStackTrace(writter);
-            } else {
-                JOptionPane.showMessageDialog(null, "#1# " + ex.getMessage(),
-                        "Aconteceu um erro", JOptionPane.ERROR_MESSAGE);
-                writter.append("\r\n[ERRO] Falhou o processo de assinatura");
-                writter.append("\r\n---------------------------------------\r\n");
-                writter.append(ex.getMessage());
-                writter.append("\r\n Stacktrace: \r\n");
-                ex.printStackTrace(writter);
-            }
-        }
-        // Fecha a popup
-        if ("PDF".equalsIgnoreCase(type)) {
-            executeJspButton("closePopupApplet");
-        } else {
-            // executeJspButton("closePopup");
-        }
-    }//GEN-LAST:event_assinarA1ActionPerformed
-
     private void jPanel1ComponentShown(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jPanel1ComponentShown
         try {
             // Carrega o properties das configurações do A1.
@@ -947,6 +961,7 @@ public class Assinador extends javax.swing.JApplet {
         }
 
     }//GEN-LAST:event_jPanel1ComponentShown
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton assinarA1;
     private javax.swing.JButton assinarA3;
