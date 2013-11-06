@@ -151,7 +151,7 @@ public class ProcessSign {
 
     private String getDate() {
         Date dataAtual = new Date();
-        SimpleDateFormat spf = new SimpleDateFormat("dd/MM/yyyy hh:mm:ss");
+        SimpleDateFormat spf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
         return spf.format(dataAtual);
     }
 

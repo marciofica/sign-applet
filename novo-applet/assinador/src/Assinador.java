@@ -241,7 +241,7 @@ public class Assinador extends javax.swing.JApplet {
     private void executeJspButton() {
         executeJspButton("saveNFE");
     }
-
+    
     private void executeJspButton(String name) {
         initializeBrowser();
         browserWindow.call(name, null);
@@ -249,7 +249,7 @@ public class Assinador extends javax.swing.JApplet {
 
     private String getDate() {
         Date dataAtual = new Date();
-        SimpleDateFormat spf = new SimpleDateFormat("dd/MM/yyyy hh:mm:ss");
+        SimpleDateFormat spf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
         return spf.format(dataAtual);
     }
 
@@ -532,11 +532,7 @@ public class Assinador extends javax.swing.JApplet {
             }
         }
         configProgressBar();
-        if("PDF".equalsIgnoreCase(type)){
-            executeJspButton("closePopupApplet");
-        } else {
-            executeJspButton("closePopup");
-        }
+        executeJspButton("closePopupApplet");
     }
     
     private void assinarA1Action(){
