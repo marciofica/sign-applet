@@ -515,21 +515,18 @@ public class Assinador extends javax.swing.JApplet {
             configProgressBar();
             String msg = "";
             if (e1 instanceof InterruptedException) {
-                e1.printStackTrace();
                 msg = "O certificado foi removido, impossibilitando a comunicação.";
             } else {
-                msg = "";
                 if(e1.getCause() != null){
                     msg = e1.getCause().getMessage();
                 } else {
                     msg = e1.getMessage();
                 }
-                
-                JOptionPane.showMessageDialog(null, "#7# " + msg, "Aconteceu um erro", JOptionPane.ERROR_MESSAGE);
-                writter.append("\r\n[ERRO] Falhou o processo de assinatura - Feche o navegador e abra novamente.");
-                writter.append("\r\n---------------------------------------\r\n");
-                writter.append(msg);
             }
+            JOptionPane.showMessageDialog(null, "#7# " + msg, "Aconteceu um erro", JOptionPane.ERROR_MESSAGE);
+            writter.append("\r\n[ERRO] Falhou o processo de assinatura - Feche o navegador e abra novamente.");
+            writter.append("\r\n---------------------------------------\r\n");
+            writter.append(msg);
         }
         configProgressBar();
         executeJspButton("closePopupApplet");

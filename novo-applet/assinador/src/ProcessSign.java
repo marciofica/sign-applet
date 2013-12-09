@@ -211,7 +211,11 @@ public class ProcessSign {
         }
         
         Enumeration<String> aliasesEnum = ks.aliases();
+        int tamanho = ks.size();
         while (aliasesEnum.hasMoreElements()) {
+            if(tamanho == 0){
+                throw new Exception("Não foi possível localizar o dispositivo. Verifique se o Smart Card ou Token estão conectados.");
+            }
             if("A1".equalsIgnoreCase(tipoCertificado)){
                 aliasOrFile = aliasesEnum.nextElement();
             }
@@ -223,6 +227,7 @@ public class ProcessSign {
                 aliasCert = aliasOrFile;
                 break;
             }
+            tamanho--;
         }
         if(pkEntry == null){
             throw new Exception("Não foi possível obter a chave privada para fazer a assinatura.");
