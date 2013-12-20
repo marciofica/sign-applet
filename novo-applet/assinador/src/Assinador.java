@@ -87,6 +87,7 @@ public class Assinador extends javax.swing.JApplet {
                     initComponents();
                     getTituloJanela();
                     PrintWriter writter = new PrintWriter(new TextComponentWriter(jTextArea1));
+                    assinarA3.setEnabled(false);
                     try {
                         initialize();
                     } catch (LoginException ex) {
@@ -198,6 +199,13 @@ public class Assinador extends javax.swing.JApplet {
         }
         setCertModel(certList);
         getData().put(CERTIFICADOS_DATA, certList);
+        
+        if(jTable1.getModel().getRowCount() > 0){
+            jTable1.setRowSelectionInterval(0, 0);
+            assinarA3.setEnabled(true);
+        } else {
+            assinarA3.setEnabled(false);
+        }
     }
 
     private void setCertModel(Collection<Certificados> certList) {
@@ -348,6 +356,8 @@ public class Assinador extends javax.swing.JApplet {
         });
         
         populateTreeCertificados();
+        
+            
         xml = getParameter("xml");
         tagAssinar = getParameter("tagAssinar");
     }
@@ -500,6 +510,18 @@ public class Assinador extends javax.swing.JApplet {
 
         // Caso selecione certificados A3 Windows
         int row = jTable1.getSelectedRow();
+        
+        if(jTable1.getModel().getRowCount() == 1){
+            jTable1.setRowSelectionInterval(0, 0);
+            row = jTable1.getSelectedRow();
+        } else {
+            if(row == -1){
+                writter.append("\r\n[" + getDate() + "] Você deve selecionar um certificado para fazer a assinatura.");
+                configProgressBar();
+                return;
+            }
+        }
+        
         Certificados cert = searchCertificate(jTable1.getModel().getValueAt(row, 0).toString());
         try {
             if ("PDF".equalsIgnoreCase(type)) {
@@ -623,7 +645,7 @@ public class Assinador extends javax.swing.JApplet {
         lblTituloJanela.setText("Assinador de documentos");
 
         lblVersao.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
-        lblVersao.setText("Versão: 2.0.00");
+        lblVersao.setText("Versão: 2.0.01");
 
         tabCertificados.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
 
@@ -879,6 +901,12 @@ public class Assinador extends javax.swing.JApplet {
                 Security.removeProvider(provider.getName());
             }
             populateTreeCertificados();
+            if(jTable1.getModel().getRowCount() > 0){
+                jTable1.setRowSelectionInterval(0, 0);
+                assinarA3.setEnabled(true);
+            } else {
+                assinarA3.setEnabled(false);
+            }
         } catch (KeyStoreException ex) {
             tabs.setSelectedIndex(TAB_STATUS);
             ex.printStackTrace(writter);
